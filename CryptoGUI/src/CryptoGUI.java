@@ -1,26 +1,32 @@
-import javax.swing.*;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.text.*;
-import java.security.SecureRandom;
-import java.security.Security;
-
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import javax.crypto.spec.SecretKeySpec;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 
 public class CryptoGUI extends JFrame implements ActionListener
 {
-	private static final String salt = "NaCl";
-    private static final int iterations = 2000;
-    private static final int keyLength = 256;
-    private static final SecureRandom random = new SecureRandom();
+    // Need to maintain byte array of ciphertext so that padding will be maintained 
+    private byte[] ciphertext;
 
 	public static void main(String[] args)
 	{
@@ -60,6 +66,8 @@ public class CryptoGUI extends JFrame implements ActionListener
 		JPanel messagePanel = new JPanel();
 		messagePanel.add(new JLabel("Enter message to Encrypt:"));
 		messageArea = new JTextArea("", 10, 15);
+		messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
 		messagePanel.add(messageArea);
 		contentPane.add(messagePanel);
 		
@@ -77,6 +85,8 @@ public class CryptoGUI extends JFrame implements ActionListener
 		JPanel ciphertextPanel = new JPanel();
 		ciphertextPanel.add(new JLabel("Resulting ciphertext:"));
 		ciphertextArea = new JTextArea("", 10, 15);
+		ciphertextArea.setLineWrap(true);
+        ciphertextArea.setWrapStyleWord(true);
 		ciphertextArea.setEditable(false);
 		ciphertextPanel.add(ciphertextArea);
 		contentPane.add(ciphertextPanel);
@@ -93,6 +103,8 @@ public class CryptoGUI extends JFrame implements ActionListener
 		JPanel decryptedPanel = new JPanel();
 		decryptedPanel.add(new JLabel("Result of decryption:"));
 		decryptedArea = new JTextArea("", 10, 15);
+		decryptedArea.setLineWrap(true);
+        decryptedArea.setWrapStyleWord(true);
 		decryptedArea.setEditable(false);
 		decryptedPanel.add(decryptedArea);
 		contentPane.add(decryptedPanel);
@@ -102,6 +114,7 @@ public class CryptoGUI extends JFrame implements ActionListener
 		successfulDecryptionPanel.add(new JLabel("Is the decrypted message the same as the original?"));
 		successfulDecryption = new JCheckBox();
 		successfulDecryption.setSelected(false);
+		successfulDecryption.setEnabled(false);
         successfulDecryptionPanel.add(successfulDecryption);
 		contentPane.add(successfulDecryptionPanel);
 		
@@ -111,28 +124,59 @@ public class CryptoGUI extends JFrame implements ActionListener
 
 	public void actionPerformed(ActionEvent event)
 	{
-		Security.insertProviderAt(new BouncyCastleProvider(), 1);
+		// creates a cipher object with SunJCE
+		Cipher cipher = null;
+		SecretKeySpec key = null;
+		try {
+			cipher = Cipher.getInstance("AES/CBC/NoPadding", "SunJCE");
+	        key = new SecretKeySpec(hexStringToByteArray(passphraseField.getText()), "AES");
+	        cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(new byte[cipher.getBlockSize()]));
+	        
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchProviderException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		if (event.getSource() == encryptButton)
-		{
-			// take the message in the first JTextArea, use the passphrase, and invoke the bouncycastle AES implementation to encrypt.
+		{		
 			try {
-		        ciphertextArea.setText(encrypt(passphraseField.getText(), messageArea.getText()).toString());				
-			}
-			catch (Exception e) {
+				ciphertext = cipher.doFinal(messageArea.getText().getBytes());
+				ciphertextArea.setText(ciphertext.toString());
+			} catch (IllegalBlockSizeException | BadPaddingException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 
 		else if (event.getSource() == decryptButton)
 		{
-			// take the ciphertext in the second JTextArea, use the passphrase, and invoke the bouncycastle AES implementation to decrypt.
-			try {
-				decryptedArea.setText(decrypt(passphraseField.getText(), ciphertextArea.getText().getBytes()).toString());
-			} catch (Exception e) {
+	        try {
+				cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(new byte[cipher.getBlockSize()]));
+				String plainText = new String(cipher.doFinal(ciphertext));
+		        decryptedArea.setText(plainText);
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
-			
+	        
 			// indicate to the user that the decryption worked as intended
 			if (decryptedArea.getText().equals(messageArea.getText())) {
 				successfulDecryption.setSelected(true);
@@ -143,7 +187,17 @@ public class CryptoGUI extends JFrame implements ActionListener
 		}
 	}
 	
-	private static byte [] encrypt(String passphrase, String plaintext) throws Exception {
+	public static byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                                 + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
+	
+	/*private static byte [] encrypt(String passphrase, String plaintext) throws Exception {
         SecretKey key = generateKey(passphrase);
 
         Cipher cipher = Cipher.getInstance("AES/CTR/NOPADDING");
@@ -169,7 +223,7 @@ public class CryptoGUI extends JFrame implements ActionListener
         byte [] ivBytes = new byte[cipher.getBlockSize()];
         random.nextBytes(ivBytes);
         return new IvParameterSpec(ivBytes);
-    }
+    }*/
 
 
 }
