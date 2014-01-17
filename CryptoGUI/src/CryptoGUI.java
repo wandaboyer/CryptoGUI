@@ -3,11 +3,17 @@ import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Random;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -22,11 +28,11 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-
 public class CryptoGUI extends JFrame implements ActionListener
 {
     // Need to maintain byte array of ciphertext so that padding will be maintained 
     private byte[] ciphertext;
+    private static final String salt = "C5H8NO4Na"; //Monosodium Glutamate
 
 	public static void main(String[] args)
 	{
@@ -127,9 +133,17 @@ public class CryptoGUI extends JFrame implements ActionListener
 		// creates a cipher object with SunJCE
 		Cipher cipher = null;
 		SecretKeySpec key = null;
+		byte[] morphedPassphrase = null;
+		MessageDigest sha = null;
 		try {
-			cipher = Cipher.getInstance("AES/CBC/NoPadding", "SunJCE");
-	        key = new SecretKeySpec(hexStringToByteArray(passphraseField.getText()), "AES");
+			cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "SunJCE");
+			
+			// make some kind of key from the passphrase field (needs to be 7 bytes), then pass to secretkeyspec
+			morphedPassphrase = (passphraseField.getText()+salt).getBytes("UTF-8");
+			sha = MessageDigest.getInstance("SHA-1");
+			morphedPassphrase = sha.digest(morphedPassphrase);
+			morphedPassphrase = Arrays.copyOf(morphedPassphrase, 16);
+	        key = new SecretKeySpec(morphedPassphrase, "AES");
 	        cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(new byte[cipher.getBlockSize()]));
 	        
 		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -142,6 +156,9 @@ public class CryptoGUI extends JFrame implements ActionListener
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchProviderException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -196,34 +213,4 @@ public class CryptoGUI extends JFrame implements ActionListener
         }
         return data;
     }
-	
-	/*private static byte [] encrypt(String passphrase, String plaintext) throws Exception {
-        SecretKey key = generateKey(passphrase);
-
-        Cipher cipher = Cipher.getInstance("AES/CTR/NOPADDING");
-        cipher.init(Cipher.ENCRYPT_MODE, key, generateIV(cipher), random);
-        return cipher.doFinal(plaintext.getBytes());
-    }
-
-    private static String decrypt(String passphrase, byte [] ciphertext) throws Exception {
-        SecretKey key = generateKey(passphrase);
-
-        Cipher cipher = Cipher.getInstance("AES/CTR/NOPADDING");
-        cipher.init(Cipher.DECRYPT_MODE, key, generateIV(cipher), random);
-        return new String(cipher.doFinal(ciphertext));
-    }
-
-    private static SecretKey generateKey(String passphrase) throws Exception {
-        PBEKeySpec keySpec = new PBEKeySpec(passphrase.toCharArray(), salt.getBytes(), iterations, keyLength);
-        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBEWITHSHA256AND256BITAES-CBC-BC");
-        return keyFactory.generateSecret(keySpec);
-    }
-
-    private static IvParameterSpec generateIV(Cipher cipher) throws Exception {
-        byte [] ivBytes = new byte[cipher.getBlockSize()];
-        random.nextBytes(ivBytes);
-        return new IvParameterSpec(ivBytes);
-    }*/
-
-
 }
