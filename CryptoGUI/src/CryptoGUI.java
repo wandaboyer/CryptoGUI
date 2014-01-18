@@ -36,8 +36,8 @@ import javax.swing.JTextField;
 public class CryptoGUI extends JFrame implements ActionListener
 {
     private JTextField passphraseField;
-    private JTextArea messageArea, ciphertextArea, decryptedArea;
-    private JButton decryptButton, encryptButton;
+    private JTextArea messageArea, ciphertextArea, decryptedArea, digestArea;
+    private JButton decryptButton, encryptButton, digestButton;
     private ButtonGroup keyLength;
     private JCheckBox successfulDecryption;
     
@@ -46,7 +46,9 @@ public class CryptoGUI extends JFrame implements ActionListener
 	private AlgorithmParameterSpec ivspec;
 	private SecretKeySpec key;
     private String message;
+    private String digest;
     private byte[] ciphertext; // Need to maintain byte array of ciphertext so that padding will be maintained
+	
         
     public CryptoGUI()
     {
@@ -63,8 +65,8 @@ public class CryptoGUI extends JFrame implements ActionListener
 			}
             
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            setSize(500, 700);
-            setLocation(100,100);
+            setSize(375, 900);
+            setLocation(500,0);
             setResizable(false);
             setVisible(true);
             
@@ -119,7 +121,7 @@ public class CryptoGUI extends JFrame implements ActionListener
             contentPane.add(messagePanel);
             //message = messageArea.getText();
             
-            // How do I make the layout nicer for positioning of buttons, etc, other than making new panels?
+            // Encrypt button
             JPanel encryptPanel = new JPanel();
             encryptPanel.setBackground(Color.WHITE);
             encryptPanel.setLayout(new FlowLayout());
@@ -127,6 +129,26 @@ public class CryptoGUI extends JFrame implements ActionListener
             encryptButton.addActionListener(this);
             encryptPanel.add(encryptButton);
             contentPane.add(encryptPanel);
+            
+            // Digest button
+            JPanel digestPanel = new JPanel();
+            digestPanel.setBackground(Color.WHITE);
+            digestPanel.setLayout(new FlowLayout());
+            digestButton = new JButton("Compute message digest");
+            digestButton.addActionListener(this);
+            digestPanel.add(digestButton);
+            //encryptPanel.add(digestButton);
+            contentPane.add(digestPanel);
+            
+            // Resulting message digest
+            JPanel digestAreaPanel = new JPanel();
+            digestAreaPanel.add(new JLabel("Message digest:"));
+            digestArea = new JTextArea("", 10, 15);
+            digestArea.setLineWrap(true);
+            digestArea.setWrapStyleWord(true);
+            digestArea.setEditable(false);
+            digestAreaPanel.add(digestArea);
+            contentPane.add(digestAreaPanel);
             
             // Resulting ciphertext
             JPanel ciphertextPanel = new JPanel();
@@ -175,18 +197,35 @@ public class CryptoGUI extends JFrame implements ActionListener
         {       
         	encrypt();
         }
-
+        else if (event.getSource() == digestButton) {
+        	messageDigest();
+        }
         else if (event.getSource() == decryptButton)
         {
         	decrypt();
         }
     }
 
+	private void messageDigest() {
+		// creates a digest of the current message
+		this.message = messageArea.getText();
+
+		MessageDigest sha = null;
+		try {
+			sha = MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        this.digest = toHex(sha.digest(this.message.getBytes()));
+        this.digestArea.setText(this.digest);
+	}
+
 	private void encrypt() {
 		this.passphrase = passphraseField.getText();
 		generateKey();
 		getIV();
-		message = messageArea.getText();
+		this.message = messageArea.getText();
 		try {
 			this.cipher.init(Cipher.ENCRYPT_MODE, key, ivspec);
             this.ciphertext = cipher.doFinal(message.getBytes());
