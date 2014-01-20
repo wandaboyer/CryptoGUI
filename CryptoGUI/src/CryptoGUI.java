@@ -10,6 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 import java.util.Random;
@@ -33,6 +34,9 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+
 public class CryptoGUI extends JFrame implements ActionListener
 {
     private JTextField passphraseField;
@@ -54,10 +58,10 @@ public class CryptoGUI extends JFrame implements ActionListener
     {
             // Set up the outer window
             super("CryptoGUI");
-            
+            Security.addProvider(new BouncyCastleProvider());
             // creates a cipher object with SunJCE
             try {
-				this.cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "SunJCE");
+				this.cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
 			} catch (NoSuchAlgorithmException | NoSuchProviderException
 					| NoSuchPaddingException e) {
 				// TODO Auto-generated catch block
@@ -212,7 +216,8 @@ public class CryptoGUI extends JFrame implements ActionListener
 
 		MessageDigest sha = null;
 		try {
-			sha = MessageDigest.getInstance("MD5");
+			//sha = MessageDigest.getInstance("MD5");
+			sha = MessageDigest.getInstance("SHA-512");
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -271,20 +276,20 @@ public class CryptoGUI extends JFrame implements ActionListener
 	}
 
 	private void generateKey() {
-		Random r;
+		/*Random r;
 		byte[] salt = null;
         try {
         	// generate random salt
         	r = new SecureRandom();
-			salt = new byte[16-passphrase.length()];
+			salt = new byte[16-this.passphrase.length()];
 			r.nextBytes(salt);
             // make some kind of key from the passphrase field (needs to be 7 bytes), then pass to secretkeyspec
-            byte[] morphedPassphrase = (passphraseField.getText()+salt).getBytes("UTF-8");
+            byte[] morphedPassphrase = (this.passphrase+salt).getBytes("UTF-8");
             MessageDigest sha = MessageDigest.getInstance("SHA-1");
             morphedPassphrase = sha.digest(morphedPassphrase);
             morphedPassphrase = Arrays.copyOf(morphedPassphrase, 16);
             key = new SecretKeySpec(morphedPassphrase, "AES");
-            cipher.init(Cipher.ENCRYPT_MODE, key, ivspec);
+            //cipher.init(Cipher.ENCRYPT_MODE, key, ivspec);
         
         } catch (NoSuchAlgorithmException e) {
                 // TODO Auto-generated catch block
@@ -298,13 +303,13 @@ public class CryptoGUI extends JFrame implements ActionListener
         }catch (UnsupportedEncodingException e) {
                 // TODO Auto-generated catch block 
                 e.printStackTrace();
-        }	
-		/*try {
+        }	*/
+		try {
 			Random r;
 			byte[] salt = null;
 			// make some kind of key from the passphrase field (needs to be 7 bytes), then pass to secretkeyspec
 			int keylenchoice = Integer.parseInt(keyLength.getSelection().getActionCommand());
-
+			
 			if (this.passphrase.length() < 16) {
 				if (keylenchoice == 16) {
 					// then generate a random salt with length of the difference between the passphrase and 16
@@ -366,7 +371,7 @@ public class CryptoGUI extends JFrame implements ActionListener
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}*/
+		}
 	}
 		
 	private void getIV () {
