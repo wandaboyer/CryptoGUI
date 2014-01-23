@@ -6,24 +6,11 @@ import java.awt.event.ActionListener;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SecureRandom;
-import java.security.Security;
-import java.security.spec.AlgorithmParameterSpec;
-import java.util.Arrays;
-import java.util.Random;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import javax.swing.ButtonGroup;
-import javax.swing.ButtonModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
@@ -34,42 +21,24 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 
 public class CryptoGUI extends JFrame implements ActionListener
 {
-    private JTextField passphraseField;
+	private JTextField passphraseField;
     private JTextArea messageArea, ciphertextArea, decryptedArea, digestArea;
     private JButton decryptButton, encryptButton, digestButton;
     private ButtonGroup keyLength;
     private JCheckBox successfulDecryption;
     
-	private Cipher cipher;
-	private String passphrase;
-	private AlgorithmParameterSpec ivspec;
-	private SecretKeySpec key;
-    private String message;
-    private String digest;
-    private byte[] ciphertext; // Need to maintain byte array of ciphertext so that padding will be maintained
-	
-        
+    private CryptoGuts cg;
+    
     public CryptoGUI()
     {
             // Set up the outer window
             super("CryptoGUI");
-            Security.addProvider(new BouncyCastleProvider());
-            // creates a cipher object with SunJCE
-            try {
-				this.cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-			} catch (NoSuchAlgorithmException | NoSuchProviderException
-					| NoSuchPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            
+                        
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            setSize(375, 900);
+            setSize(375, 800);
             setLocation(500,0);
             setResizable(false);
             setVisible(true);
@@ -87,7 +56,6 @@ public class CryptoGUI extends JFrame implements ActionListener
             passphraseField = new JTextField("", 15);
             passphrasePanel.add(passphraseField);
             contentPane.add(passphrasePanel);
-            passphrase = passphraseField.getText();
     		
             // Choose desired key length
     		keyLength = new ButtonGroup();
@@ -113,7 +81,6 @@ public class CryptoGUI extends JFrame implements ActionListener
     		keyLengthPanel.add(rb);
     		passphrasePanel.add(keyLengthPanel);
     		contentPane.add(keyLengthPanel);
-         
     		
             // Input message to encrypt
             JPanel messagePanel = new JPanel();
@@ -123,7 +90,6 @@ public class CryptoGUI extends JFrame implements ActionListener
             messageArea.setWrapStyleWord(true);
             messagePanel.add(messageArea);
             contentPane.add(messagePanel);
-            //message = messageArea.getText();
             
             // Encrypt button
             JPanel encryptPanel = new JPanel();
@@ -133,26 +99,6 @@ public class CryptoGUI extends JFrame implements ActionListener
             encryptButton.addActionListener(this);
             encryptPanel.add(encryptButton);
             contentPane.add(encryptPanel);
-            
-            // Digest button
-            JPanel digestPanel = new JPanel();
-            digestPanel.setBackground(Color.WHITE);
-            digestPanel.setLayout(new FlowLayout());
-            digestButton = new JButton("Compute message digest");
-            digestButton.addActionListener(this);
-            digestPanel.add(digestButton);
-            //encryptPanel.add(digestButton);
-            contentPane.add(digestPanel);
-            
-            // Resulting message digest
-            JPanel digestAreaPanel = new JPanel();
-            digestAreaPanel.add(new JLabel("Message digest:"));
-            digestArea = new JTextArea("", 10, 15);
-            digestArea.setLineWrap(true);
-            digestArea.setWrapStyleWord(true);
-            digestArea.setEditable(false);
-            digestAreaPanel.add(digestArea);
-            contentPane.add(digestAreaPanel);
             
             // Resulting ciphertext
             JPanel ciphertextPanel = new JPanel();
@@ -195,207 +141,66 @@ public class CryptoGUI extends JFrame implements ActionListener
             setContentPane(contentPane);        
     }
     
-	public void actionPerformed(ActionEvent event)
-    {
-        if (event.getSource() == encryptButton)
-        {       
-        	encrypt();
+	public void actionPerformed(ActionEvent event) {
+		//byte[] ciphertext;
+		String passphrase, message;
+		int keylenchoice;
+		
+        if (event.getSource() == encryptButton) {
+        	cg = new CryptoGuts();
+        	passphrase = passphraseField.getText();
+        	message = messageArea.getText();
+        	keylenchoice = Integer.parseInt(keyLength.getSelection().getActionCommand());
+        	
+        	//System.out.println(passphrase + " " + message + " " + keylenchoice);
+			try {
+				//ciphertext = cg.encrypt(passphrase, message, keylenchoice);
+				this.ciphertextArea.setText(toHex(cg.encrypt(passphrase, message, keylenchoice)));
+			} catch (InvalidKeyException | NumberFormatException
+					| InvalidAlgorithmParameterException
+					| IllegalBlockSizeException | BadPaddingException
+					| UnsupportedEncodingException | NoSuchAlgorithmException | NullPointerException e) {
+				//JOptionPane.showMessageDialog(this,"Something bad happened.", "somethingbad", JOptionPane.ERROR_MESSAGE);
+				e.printStackTrace();
+			}
         }
-        else if (event.getSource() == digestButton) {
-        	messageDigest();
-        }
-        else if (event.getSource() == decryptButton)
-        {
-        	decrypt();
-        }
-    }
-
-	private void messageDigest() {
-		// creates a digest of the current message
-		this.message = messageArea.getText();
-
-		MessageDigest sha = null;
-		try {
-			//sha = MessageDigest.getInstance("MD5");
-			sha = MessageDigest.getInstance("SHA-512");
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        this.digest = toHex(sha.digest(this.message.getBytes()));
-        this.digestArea.setText(this.digest);
-	}
-
-	private void encrypt() {
-		this.passphrase = passphraseField.getText();
-		generateKey();
-		getIV();
-		this.message = messageArea.getText();
-		try {
-			this.cipher.init(Cipher.ENCRYPT_MODE, key, ivspec);
-            this.ciphertext = cipher.doFinal(message.getBytes());
-            this.ciphertextArea.setText(toHex(ciphertext));
-        } catch (IllegalBlockSizeException | BadPaddingException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-        } catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
-	private void decrypt() {
-		try {
-            this.cipher.init(Cipher.DECRYPT_MODE, this.key, this.ivspec);
-            String plaintext = new String(this.cipher.doFinal(this.ciphertext));
-            decryptedArea.setText(plaintext);
-            } catch (InvalidKeyException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-            } catch (InvalidAlgorithmParameterException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-            } catch (BadPaddingException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-            }
-    
-            // indicate to the user that the decryption worked as intended
+        
+        // if this is pressed first, needs to e greyed outy. if pass or mess changed then need to grey out again until enc pressed
+        else if (event.getSource() == decryptButton) {
+        	try {
+        		JOptionPane.showMessageDialog(this,"Decrypting.", "decryptingCiphertext", JOptionPane.ERROR_MESSAGE);
+				cg.decrypt();
+			} catch (InvalidKeyException | InvalidAlgorithmParameterException
+					| IllegalBlockSizeException | BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	
+        	// indicate to the user that the decryption worked as intended
             if (decryptedArea.getText().equals(messageArea.getText())) {
                     successfulDecryption.setSelected(true);
             }
             else {
                     successfulDecryption.setSelected(false);
             }
-	}
+        }
+    }
 
-	private void generateKey() {
-		/*Random r;
-		byte[] salt = null;
-        try {
-        	// generate random salt
-        	r = new SecureRandom();
-			salt = new byte[16-this.passphrase.length()];
-			r.nextBytes(salt);
-            // make some kind of key from the passphrase field (needs to be 7 bytes), then pass to secretkeyspec
-            byte[] morphedPassphrase = (this.passphrase+salt).getBytes("UTF-8");
-            MessageDigest sha = MessageDigest.getInstance("SHA-1");
-            morphedPassphrase = sha.digest(morphedPassphrase);
-            morphedPassphrase = Arrays.copyOf(morphedPassphrase, 16);
-            key = new SecretKeySpec(morphedPassphrase, "AES");
-            //cipher.init(Cipher.ENCRYPT_MODE, key, ivspec);
-        
-        } catch (NoSuchAlgorithmException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-        } catch (InvalidKeyException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-        } catch (InvalidAlgorithmParameterException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-        }catch (UnsupportedEncodingException e) {
-                // TODO Auto-generated catch block 
-                e.printStackTrace();
-        }	*/
-		try {
-			Random r;
-			byte[] salt = null;
-			// make some kind of key from the passphrase field (needs to be 7 bytes), then pass to secretkeyspec
-			int keylenchoice = Integer.parseInt(keyLength.getSelection().getActionCommand());
-			
-			if (this.passphrase.length() < 16) {
-				if (keylenchoice == 16) {
-					// then generate a random salt with length of the difference between the passphrase and 16
-					r = new SecureRandom();
-					salt = new byte[16-passphrase.length()];
-					r.nextBytes(salt);
-				}
-				else if (keylenchoice == 24) {
-					r = new SecureRandom();
-					salt = new byte[24-passphrase.length()];
-					r.nextBytes(salt);
-				}
-				else if (keylenchoice == 32) {
-					r = new SecureRandom();
-					salt = new byte[32-passphrase.length()];
-					r.nextBytes(salt);
-				}
-			}
-			else if (this.passphrase.length() < 24) {
-				if (keylenchoice == 16) {
-					JOptionPane.showMessageDialog(this,"Cannot use this key length!", "wrongKeyLength", JOptionPane.ERROR_MESSAGE);
-				}
-				else if (keylenchoice == 24) {
-					r = new SecureRandom();
-					salt = new byte[24-passphrase.length()];
-					r.nextBytes(salt);
-				}
-				else if (keylenchoice == 32) {
-					r = new SecureRandom();
-					salt = new byte[32-passphrase.length()];
-					r.nextBytes(salt);
-				}
-			}
-			else if (this.passphrase.length() <= 32) {
-				if (keylenchoice == 16) {
-					JOptionPane.showMessageDialog(this,"Cannot use this key length!", "wrongKeyLength", JOptionPane.ERROR_MESSAGE);
-				}
-				else if (keylenchoice == 24) {
-					JOptionPane.showMessageDialog(this,"Cannot use this key length!", "wrongKeyLength", JOptionPane.ERROR_MESSAGE);
-				}
-				else if (keylenchoice == 32) {
-					r = new SecureRandom();
-					salt = new byte[32-passphrase.length()];
-					r.nextBytes(salt);
-				}
-			}
-			else {
-				JOptionPane.showMessageDialog(this,"Choose a passphrase that is less than or equal to 32 bytes in length!", "passphraseTooLarge", JOptionPane.ERROR_MESSAGE);
-			}
-			
-			byte[] morphedPassphrase = (passphrase+salt.toString()).getBytes("UTF-8");
-			MessageDigest sha = MessageDigest.getInstance("SHA-1");
-			morphedPassphrase = sha.digest(morphedPassphrase);
-			morphedPassphrase = Arrays.copyOf(morphedPassphrase, keylenchoice);
-	        this.key = new SecretKeySpec(morphedPassphrase, "AES");
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-		
-	private void getIV () {
-		byte[] iv = new byte[this.cipher.getBlockSize()];
-		new SecureRandom().nextBytes(iv);
-		this.ivspec = new IvParameterSpec(iv);
-	}
- 
 	
-	private static String toHex(String txt) {
+	public static String toHex(String txt) {
         return toHex(txt.getBytes());
-    }
-    private static String fromHex(String hex) {
-        return new String(toByte(hex));
-    }
-
-    private static byte[] toByte(String hexString) {
-        int len = hexString.length()/2;
-        byte[] result = new byte[len];
-        for (int i = 0; i < len; i++)
-            result[i] = Integer.valueOf(hexString.substring(2*i, 2*i+2), 16).byteValue();
-        return result;
-    }
-
+	}
+	public static String fromHex(String hex) {
+	        return new String(toByte(hex));
+	}
+	
+	public static byte[] toByte(String hexString) {
+	        int len = hexString.length()/2;
+	        byte[] result = new byte[len];
+	        for (int i = 0; i < len; i++)
+	                result[i] = Integer.valueOf(hexString.substring(2*i, 2*i+2), 16).byteValue();
+	        return result;
+	}
     private static String toHex(byte[] buf) {
         if (buf == null)
             return "";
@@ -410,7 +215,7 @@ public class CryptoGUI extends JFrame implements ActionListener
     private static void appendHex(StringBuffer sb, byte b) {
         sb.append(HEX.charAt((b>>4)&0x0f)).append(HEX.charAt(b&0x0f));
     }
-	
+
 	public static void main(String[] args){
        	CryptoGUI app = new CryptoGUI();
  	}
