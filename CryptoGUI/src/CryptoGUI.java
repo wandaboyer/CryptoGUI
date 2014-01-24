@@ -31,7 +31,7 @@ public class CryptoGUI extends JFrame implements ActionListener
     private JCheckBox successfulDecryption;
     
     private CryptoGuts cg;
-    
+    private String passphrase = "", message = "";
     public CryptoGUI()
     {
             // Set up the outer window
@@ -142,8 +142,7 @@ public class CryptoGUI extends JFrame implements ActionListener
     }
     
 	public void actionPerformed(ActionEvent event) {
-		//byte[] ciphertext;
-		String passphrase, message;
+		
 		int keylenchoice;
 		
         if (event.getSource() == encryptButton) {
@@ -152,10 +151,14 @@ public class CryptoGUI extends JFrame implements ActionListener
         	message = messageArea.getText();
         	keylenchoice = Integer.parseInt(keyLength.getSelection().getActionCommand());
         	
-        	//System.out.println(passphrase + " " + message + " " + keylenchoice);
 			try {
-				//ciphertext = cg.encrypt(passphrase, message, keylenchoice);
-				this.ciphertextArea.setText(toHex(cg.encrypt(passphrase, message, keylenchoice)));
+				if (passphrase.equals("") || message.equals("")) {
+        			JOptionPane.showMessageDialog(this,"No current passphrase or message entered. Please enter a passphrase and message, and then press 'Encrypt' again.", "noPassOrMessage", JOptionPane.ERROR_MESSAGE);
+        		}
+				else {
+					cg.encrypt(passphrase, message, keylenchoice);
+					this.ciphertextArea.setText(toHex(cg.ciphertext.getCiphertextByteArr()));
+				}
 			} catch (InvalidKeyException | NumberFormatException
 					| InvalidAlgorithmParameterException
 					| IllegalBlockSizeException | BadPaddingException
@@ -168,8 +171,17 @@ public class CryptoGUI extends JFrame implements ActionListener
         // if this is pressed first, needs to e greyed outy. if pass or mess changed then need to grey out again until enc pressed
         else if (event.getSource() == decryptButton) {
         	try {
-        		JOptionPane.showMessageDialog(this,"Decrypting.", "decryptingCiphertext", JOptionPane.ERROR_MESSAGE);
-				cg.decrypt();
+        		if (!cg.ciphertext.equals(null)) { // WHAT THE FUCK IS GOING ON HERE.
+        			if (!passphraseField.getText().equals(passphrase) || !messageArea.getText().equals(message)) {
+            			JOptionPane.showMessageDialog(this,"I believe you have changed the passphrase or message without re-encrypting. Please press 'Encrypt' again.", "needToEncrypt", JOptionPane.ERROR_MESSAGE);
+            		}
+            		else {
+            			decryptedArea.setText(cg.decrypt(cg.ciphertext));
+            		}
+        		} 
+        		else {
+        			JOptionPane.showMessageDialog(this,"No current ciphertext to decrypt. Please enter a passphrase and message, and then press 'Encrypt'.", "noCiphertext", JOptionPane.ERROR_MESSAGE);
+        		}
 			} catch (InvalidKeyException | InvalidAlgorithmParameterException
 					| IllegalBlockSizeException | BadPaddingException e) {
 				// TODO Auto-generated catch block

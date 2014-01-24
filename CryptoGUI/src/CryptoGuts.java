@@ -21,9 +21,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class CryptoGuts {
 	private Cipher cipher;
-	private AlgorithmParameterSpec ivspec;
-	private SecretKeySpec key;
-    public byte[] ciphertext; // Need to maintain byte array of ciphertext so that padding will be maintained
+	protected Ciphertext ciphertext;
 	
     //call const from const
     protected CryptoGuts () {
@@ -42,25 +40,27 @@ public class CryptoGuts {
     // move keylen to constructor
     
     // return salt, iv, keylen AND the ciphertext - create a new class to return, EncryptedObj... tell that obj to write and read itself from a file, and hex
-	public byte[] encrypt(String passphrase, String message, int keylenchoice) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
-		generateKey(passphrase, keylenchoice);
-
-		byte[] iv = new byte[this.cipher.getBlockSize()];
-		new SecureRandom().nextBytes(iv);
-		ivspec = new IvParameterSpec(iv);
+	public void encrypt(String passphrase, String message, int keylenchoice) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException {
+		ciphertext = new Ciphertext();
 		
-		cipher.init(Cipher.ENCRYPT_MODE, key, ivspec);
-        ciphertext = cipher.doFinal(message.getBytes());
-		return ciphertext;
+		ciphertext.setKey(generateKey(passphrase, keylenchoice));
+		ciphertext.setIVspec(generateIV());
+		
+		cipher.init(Cipher.ENCRYPT_MODE, ciphertext.getKey(), ciphertext.getIVspec());
+        ciphertext.setCiphertextByteArr(cipher.doFinal(message.getBytes()));
+        
+		//return ciphertext;
 	}
 	
-	public String decrypt() throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
-        cipher.init(Cipher.DECRYPT_MODE, key, ivspec);
-        String plaintext = new String(this.cipher.doFinal(this.ciphertext));
+	
+
+	public String decrypt(Ciphertext ciphertext) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+        cipher.init(Cipher.DECRYPT_MODE,ciphertext.getKey(), ciphertext.getIVspec());
+        String plaintext = new String(this.cipher.doFinal(ciphertext.getCiphertextByteArr()));
         return plaintext;
 	}
 
-	private void generateKey(String passphrase, int keylenchoice) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+	private SecretKeySpec generateKey(String passphrase, int keylenchoice) throws UnsupportedEncodingException, NoSuchAlgorithmException {
 		Random r;
 		byte[] salt = null;
 		// make some kind of key from the passphrase field (needs to be 7 bytes), then pass to secretkeyspec
@@ -119,11 +119,15 @@ public class CryptoGuts {
 		morphedPassphrase = sha.digest(morphedPassphrase);
 		morphedPassphrase = Arrays.copyOf(morphedPassphrase, keylenchoice);
 		//System.out.println(this.key);
-        this.key = new SecretKeySpec(morphedPassphrase, "AES");
+        return new SecretKeySpec(morphedPassphrase, "AES");
         //System.out.println(this.key);
 	}
 	
-	
+	private IvParameterSpec generateIV() {
+		byte[] iv = new byte[this.cipher.getBlockSize()];
+		new SecureRandom().nextBytes(iv);
+		return new IvParameterSpec(iv);
+	}
 	/*public static void main(String[] args){
        	CryptoGuts app = new CryptoGuts();
        	try {
