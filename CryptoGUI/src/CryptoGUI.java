@@ -157,7 +157,7 @@ public class CryptoGUI extends JFrame implements ActionListener
         		}
 				else {
 					cg.encrypt(passphrase, message, keylenchoice);
-					this.ciphertextArea.setText(toHex(cg.ciphertext.getCiphertextByteArr()));
+					this.ciphertextArea.setText(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
 				}
 			} catch (InvalidKeyException | NumberFormatException
 					| InvalidAlgorithmParameterException
@@ -171,7 +171,7 @@ public class CryptoGUI extends JFrame implements ActionListener
         // if this is pressed first, needs to e greyed outy. if pass or mess changed then need to grey out again until enc pressed
         else if (event.getSource() == decryptButton) {
         	try {
-        		if (!cg.ciphertext.equals(null)) { // WHAT THE FUCK IS GOING ON HERE.
+        		if (!cg.ciphertext.equals(null)) { // WTF IS GOING ON HERE.
         			if (!passphraseField.getText().equals(passphrase) || !messageArea.getText().equals(message)) {
             			JOptionPane.showMessageDialog(this,"I believe you have changed the passphrase or message without re-encrypting. Please press 'Encrypt' again.", "needToEncrypt", JOptionPane.ERROR_MESSAGE);
             		}
@@ -199,36 +199,9 @@ public class CryptoGUI extends JFrame implements ActionListener
     }
 
 	
-	public static String toHex(String txt) {
-        return toHex(txt.getBytes());
-	}
-	public static String fromHex(String hex) {
-	        return new String(toByte(hex));
-	}
 	
-	public static byte[] toByte(String hexString) {
-	        int len = hexString.length()/2;
-	        byte[] result = new byte[len];
-	        for (int i = 0; i < len; i++)
-	                result[i] = Integer.valueOf(hexString.substring(2*i, 2*i+2), 16).byteValue();
-	        return result;
-	}
-    private static String toHex(byte[] buf) {
-        if (buf == null)
-            return "";
-        StringBuffer result = new StringBuffer(2*buf.length);
-        for (int i = 0; i < buf.length; i++) {
-            appendHex(result, buf[i]);
-        }
-        return result.toString();
-    }
-	
-    private final static String HEX = "0123456789ABCDEF";
-    private static void appendHex(StringBuffer sb, byte b) {
-        sb.append(HEX.charAt((b>>4)&0x0f)).append(HEX.charAt(b&0x0f));
-    }
 
-	public static void main(String[] args){
+	/*public static void main(String[] args){
        	CryptoGUI app = new CryptoGUI();
- 	}
+ 	}*/
 }
