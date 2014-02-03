@@ -25,8 +25,8 @@ import javax.swing.JTextField;
 public class CryptoGUI extends JFrame implements ActionListener
 {
 	private JTextField passphraseField;
-    private JTextArea messageArea, ciphertextArea, decryptedArea, digestArea;
-    private JButton decryptButton, encryptButton, digestButton;
+    private JTextArea messageArea, ciphertextArea, decryptedArea;
+    private JButton decryptButton, encryptButton;
     private ButtonGroup keyLength;
     private JCheckBox successfulDecryption;
     
@@ -163,8 +163,13 @@ public class CryptoGUI extends JFrame implements ActionListener
 					| InvalidAlgorithmParameterException
 					| IllegalBlockSizeException | BadPaddingException
 					| UnsupportedEncodingException | NoSuchAlgorithmException | NullPointerException e) {
-				//JOptionPane.showMessageDialog(this,"Something bad happened.", "somethingbad", JOptionPane.ERROR_MESSAGE);
 				e.printStackTrace();
+			} catch (wrongKeyLengthException e) {
+				JOptionPane.showMessageDialog(this,"Cannot use this key length!", "wrongKeyLength", JOptionPane.ERROR_MESSAGE);
+				//e.printStackTrace();
+			} catch (passphraseTooLargeException e) {
+				JOptionPane.showMessageDialog(this,"Passphrase too large!", "passphraseTooLarge", JOptionPane.ERROR_MESSAGE);
+				//e.printStackTrace();
 			}
         }
         
@@ -198,10 +203,7 @@ public class CryptoGUI extends JFrame implements ActionListener
         }
     }
 
-	
-	
-
-	/*public static void main(String[] args){
+	public static void main(String[] args) {
        	CryptoGUI app = new CryptoGUI();
- 	}*/
+ 	}
 }

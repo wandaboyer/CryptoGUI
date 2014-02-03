@@ -3,6 +3,7 @@ import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.security.NoSuchAlgorithmException;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -104,12 +105,16 @@ public class DigestGUI extends JFrame implements ActionListener {
     		}
 			else {
 				digestChoice = whichDigest.getSelection().getActionCommand();
-				this.digestArea.setText(hexConverter.toHex(dg.messageDigest(messageArea.getText(), digestChoice)));
+				try {
+					this.digestArea.setText(hexConverter.toHex(dg.messageDigest(messageArea.getText(), digestChoice)));
+				} catch (NoSuchAlgorithmException e) {
+					e.printStackTrace();
+				}
 			}
         }
     }
 	
-	public static void main(String[] args){
+	/*public static void main(String[] args){
        	DigestGUI app = new DigestGUI();
- 	}
+ 	}*/
 }
