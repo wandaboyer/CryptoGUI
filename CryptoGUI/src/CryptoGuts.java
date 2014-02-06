@@ -21,6 +21,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 public class CryptoGuts {
 	private Cipher cipher;
 	protected Ciphertext ciphertext;
+	private String salt;
 	
     //call const from const
     protected CryptoGuts () {
@@ -116,7 +117,7 @@ public class CryptoGuts {
 			//JOptionPane.showMessageDialog(this,"Choose a passphrase that is less than or equal to 32 bytes in length!", "passphraseTooLarge", JOptionPane.ERROR_MESSAGE);
 			throw new passphraseTooLargeException();
 		}
-		
+		this.salt = hexConverter.toHex(salt);
 		byte[] morphedPassphrase = (passphrase+salt.toString()).getBytes("UTF-8");
 		MessageDigest sha = MessageDigest.getInstance("SHA-1");
 		morphedPassphrase = sha.digest(morphedPassphrase);
@@ -128,5 +129,9 @@ public class CryptoGuts {
 		byte[] iv = new byte[this.cipher.getBlockSize()];
 		new SecureRandom().nextBytes(iv);
 		return new IvParameterSpec(iv);
+	}
+	
+	protected String getSalt() {
+		return this.salt;
 	}
 }

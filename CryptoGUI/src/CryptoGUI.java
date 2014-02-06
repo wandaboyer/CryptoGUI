@@ -228,7 +228,7 @@ public class CryptoGUI extends JFrame implements ActionListener
 			if (Integer.parseInt(args[2]) == 0) {
 				try {
 					cg.encrypt(args[0], args[3], Integer.parseInt(args[1]));
-					System.out.println(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+					System.out.println(cg.getSalt()+"\n#\n"+hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
 				} catch (InvalidKeyException | NumberFormatException
 						| InvalidAlgorithmParameterException
 						| IllegalBlockSizeException | BadPaddingException
@@ -248,7 +248,7 @@ public class CryptoGUI extends JFrame implements ActionListener
 						plaintext += in.nextLine()+"\n";
 					}
 					cg.encrypt(args[0], plaintext, Integer.parseInt(args[1]));
-					System.out.println(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+					System.out.println(cg.getSalt()+"\n#\n"+hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
 					in.close();
 				} catch (FileNotFoundException | InvalidKeyException | NumberFormatException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException | wrongKeyLengthException | passphraseTooLargeException e) {
 					// TODO Auto-generated catch block
@@ -293,7 +293,7 @@ public class CryptoGUI extends JFrame implements ActionListener
 					cg.encrypt(args[0], plaintext, Integer.parseInt(args[1]));
 					
 					PrintWriter writer = new PrintWriter(args[4], "UTF-8");
-					writer.print(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+					writer.print(cg.getSalt()+"\n#\n"+hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
 					writer.close();
 				} catch (FileNotFoundException | InvalidKeyException | NumberFormatException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException | wrongKeyLengthException | passphraseTooLargeException e) {
 					// TODO Auto-generated catch block
