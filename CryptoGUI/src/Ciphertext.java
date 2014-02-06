@@ -33,7 +33,4 @@ public class Ciphertext {
 	public byte[] getCiphertextByteArr() {
 		return this.ciphertext;
 	}
-	
-	
-	
 }

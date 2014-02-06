@@ -129,23 +129,4 @@ public class CryptoGuts {
 		new SecureRandom().nextBytes(iv);
 		return new IvParameterSpec(iv);
 	}
-	/*public static void main(String[] args){
-       	CryptoGuts app = new CryptoGuts();
-       	try {
-			app.ciphertext = app.encrypt("sasdf", "fart", 32);
-		} catch (InvalidKeyException | InvalidAlgorithmParameterException
-				| IllegalBlockSizeException | BadPaddingException
-				| UnsupportedEncodingException | NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-       	try {
-			System.out.println(app.decrypt());
-		} catch (InvalidKeyException | InvalidAlgorithmParameterException
-				| IllegalBlockSizeException | BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-       	
- 	}*/
 }

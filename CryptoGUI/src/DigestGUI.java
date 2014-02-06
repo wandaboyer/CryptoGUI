@@ -114,7 +114,7 @@ public class DigestGUI extends JFrame implements ActionListener {
         }
     }
 	
-	/*public static void main(String[] args){
+	public static void main(String[] args){
        	DigestGUI app = new DigestGUI();
- 	}*/
+ 	}
 }

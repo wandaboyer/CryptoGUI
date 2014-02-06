@@ -3,10 +3,16 @@ import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Scanner;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -20,7 +26,6 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-
 
 public class CryptoGUI extends JFrame implements ActionListener
 {
@@ -204,6 +209,106 @@ public class CryptoGUI extends JFrame implements ActionListener
     }
 
 	public static void main(String[] args) {
-       	CryptoGUI app = new CryptoGUI();
+		if (args.length == 0) {
+			CryptoGUI app = new CryptoGUI();
+		}
+		else if (args.length < 4){
+			System.err.print("Invalid number of parameters. Please input the passphrase (string), key length (int),\n"
+					+"whether or not you're asking to encrypt a file on your drive (1) or a string (0),\nand then"+
+					" either the location of the file to encrypt(string of the form C:\\[stuff]) \nor your plaintext (string).");
+		}
+		else if (args.length == 4) {
+			/*
+			 * First parameter is passphrase (string)
+			 * Second parameter is keylength (int)
+			 * Third parameter is whether you're giving a file location for the message to encrypt or the actual string to encrypt
+			 * Fourth parameter is either file location or the message to encrypt (string)
+			 */
+			CryptoGuts cg = new CryptoGuts();
+			if (Integer.parseInt(args[2]) == 0) {
+				try {
+					cg.encrypt(args[0], args[3], Integer.parseInt(args[1]));
+					System.out.println(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+				} catch (InvalidKeyException | NumberFormatException
+						| InvalidAlgorithmParameterException
+						| IllegalBlockSizeException | BadPaddingException
+						| UnsupportedEncodingException
+						| NoSuchAlgorithmException | wrongKeyLengthException
+						| passphraseTooLargeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else if (Integer.parseInt(args[2]) == 1) {
+				String plaintext = "";
+				Scanner in;
+				try {
+					in = new Scanner(new FileReader(args[3]));
+					while (in.hasNext()) {
+						plaintext += in.nextLine()+"\n";
+					}
+					cg.encrypt(args[0], plaintext, Integer.parseInt(args[1]));
+					System.out.println(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+					in.close();
+				} catch (FileNotFoundException | InvalidKeyException | NumberFormatException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException | wrongKeyLengthException | passphraseTooLargeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else {
+				System.err.print("Invalid option; either you want to encrypt a file (1) or a message from the command line (0)");
+			}
+		}
+		else if (args.length == 5) {
+			/*
+			 * First parameter is passphrase (string)
+			 * Second parameter is keylength (int)
+			 * Third parameter is whether you're giving a file location for the message to encrypt or the actual string to encrypt
+			 * Fourth parameter is either file location or the message to encrypt (string)
+			 */
+			CryptoGuts cg = new CryptoGuts();
+			if (Integer.parseInt(args[2]) == 0) {
+				try {
+					cg.encrypt(args[0], args[3], Integer.parseInt(args[1]));
+				} catch (InvalidKeyException | NumberFormatException
+						| InvalidAlgorithmParameterException
+						| IllegalBlockSizeException | BadPaddingException
+						| UnsupportedEncodingException
+						| NoSuchAlgorithmException | wrongKeyLengthException
+						| passphraseTooLargeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else if (Integer.parseInt(args[2]) == 1) {
+				String plaintext = "";
+				Scanner in;
+				try {
+					in = new Scanner(new FileReader(args[3]));
+					while (in.hasNext()) {
+						plaintext += in.nextLine()+"\n";
+					}
+					in.close();
+					
+					cg.encrypt(args[0], plaintext, Integer.parseInt(args[1]));
+					
+					PrintWriter writer = new PrintWriter(args[4], "UTF-8");
+					writer.print(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+					writer.close();
+				} catch (FileNotFoundException | InvalidKeyException | NumberFormatException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException | wrongKeyLengthException | passphraseTooLargeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else {
+				System.err.print("Invalid option; either you want to encrypt a file (1) or a message from the command line (0)");
+			}
+		}
+		else {
+			System.err.print("Invalid number of parameters. Please input the passphrase (string), key length (int),\n"
+					+"whether or not you're asking to encrypt a file on your drive (1) or a string (0),\n"+
+					" either the location of the file to encrypt(string of the form C:\\[stuff]) \nor your plaintext (string),"
+					+ "and then, unless you want stuff spit out to the command line, the desired location for the ciphertext (string of the form C:\\[stuff]).");
+		}
  	}
 }
