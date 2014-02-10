@@ -1,11 +1,17 @@
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.spec.AlgorithmParameterSpec;
 import java.util.Scanner;
 
 import javax.crypto.BadPaddingException;
@@ -57,22 +63,66 @@ public class CryptoCommandLine {
 	}
 		
 	private String encrypt (String passphrase, int keylength, String plaintext) 
-			throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
+			throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException, IOException {
 
 		CryptoGuts cg = new CryptoGuts();
 		cg.encrypt(passphrase, plaintext, keylength);
 		
-		return (cg.getSalt()+"\n#\n"+cg.ciphertext.getIVspec().toString()+"\n#\n"+hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		ObjectOutput out = null;
+		byte[] yourBytes = null;
+		try {
+		  out = new ObjectOutputStream(bos);   
+		  out.writeObject(cg.ciphertext.getIVspec());
+		  yourBytes = bos.toByteArray();
+		} finally {
+		  try {
+		    if (out != null) {
+		      out.close();
+		    }
+		  } catch (IOException ex) {
+		    // ignore close exception
+		  }
+		  try {
+		    bos.close();
+		  } catch (IOException ex) {
+		    // ignore close exception
+		  }
+		}
+		
+		return (cg.getSalt()+"\n#\n"+hexConverter.toHex(yourBytes)+"\n#\n"+hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
 	}
 	
 	
-	private String decrypt (String passphrase, int keylength, String data) throws UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+	private String decrypt (String passphrase, int keylength, String data) throws NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException {
 		String[] components = data.split("#");
 		
 		CryptoGuts cg = new CryptoGuts();
 		
 		cg.ciphertext.setKey(cg.generateKey(passphrase, keylength, components[0]));
-		cg.ciphertext.setIVspec(new IvParameterSpec(components[1].getBytes()));
+		
+		ByteArrayInputStream bis = new ByteArrayInputStream(hexConverter.toByte(components[1]));
+		ObjectInput in = null;
+		IvParameterSpec ivparam = null;
+		try {
+		  in = new ObjectInputStream(bis);
+		  ivparam = (IvParameterSpec) in.readObject();
+		} finally {
+		  try {
+		    bis.close();
+		  } catch (IOException ex) {
+		    // ignore close exception
+		  }
+		  try {
+		    if (in != null) {
+		      in.close();
+		    }
+		  } catch (IOException ex) {
+		    // ignore close exception
+		  }
+		}
+		cg.ciphertext.setIVspec(ivparam);
+		
 		cg.ciphertext.setCiphertextByteArr(components[2].getBytes());
 		return (cg.decrypt(cg.ciphertext));
 	}
