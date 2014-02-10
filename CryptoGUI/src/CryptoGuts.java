@@ -125,7 +125,7 @@ public class CryptoGuts {
         return new SecretKeySpec(morphedPassphrase, "AES");
 	}
 	
-	private SecretKeySpec generateKey(String passphrase, int keylenchoice, String salt) throws UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
+	protected SecretKeySpec generateKey(String passphrase, int keylenchoice, String salt) throws UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
 		this.salt = salt;
 		byte[] morphedPassphrase = (passphrase+salt.toString()).getBytes("UTF-8");
 		MessageDigest sha = MessageDigest.getInstance("SHA-1");

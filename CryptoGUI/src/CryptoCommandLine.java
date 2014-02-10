@@ -55,40 +55,10 @@ public class CryptoCommandLine {
 			writer.close();
 		}
 	}
-	
-	
-	private void outputToFile(String[] args) throws InvalidKeyException, NumberFormatException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
 		
-		
-		if (Integer.parseInt(args[0]) == 0) {
-			writer.print(encrypt(args));
-		}
-		else if (Integer.parseInt(args[0]) == 1) {
-			writer.print(decrypt(args));
-		}
-		else {
-			System.err.print("The ony two modes are encrypt (enc) and decrypt (dec).");
-		}
-		writer.close();
-	}
-
-	private void outputToCL(String[] args) throws InvalidKeyException, NumberFormatException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
-		if (Integer.parseInt(args[0]) == 0) {
-			System.out.print(encrypt(args));
-		}
-		else if (Integer.parseInt(args[0]) == 1) {
-			System.out.print(decrypt(args));
-		}
-		else {
-			System.err.print("The ony two modes are encrypt (enc) and decrypt (dec).");
-		}
-	}
-
-	
-	
 	private String encrypt (String passphrase, int keylength, String plaintext) 
-			//throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
-			throws Exception {
+			throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
+
 		CryptoGuts cg = new CryptoGuts();
 		cg.encrypt(passphrase, plaintext, keylength);
 		
@@ -96,26 +66,15 @@ public class CryptoCommandLine {
 	}
 	
 	
-	private String decrypt (String passphrase, int keylength, String data) {
-		// need to serialize and deserialize the ivspec
+	private String decrypt (String passphrase, int keylength, String data) throws UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
 		String[] components = data.split("#");
 		
 		CryptoGuts cg = new CryptoGuts();
-		cg.ciphertext.setIVspec(new IvParameterSpec(components[2].getBytes()));
-		cg.ciphertext.setKey(null);
 		
-		try {
-			cg.decrypt(passphrase, plaintext, keylength);
-			return (cg.getSalt()+"\n#\n"+hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
-		} catch (InvalidKeyException | NumberFormatException
-				| InvalidAlgorithmParameterException
-				| IllegalBlockSizeException | BadPaddingException
-				| UnsupportedEncodingException
-				| NoSuchAlgorithmException | wrongKeyLengthException
-				| passphraseTooLargeException e) {
-			e.printStackTrace();
-		}
-		return null;
+		cg.ciphertext.setKey(cg.generateKey(passphrase, keylength, components[0]));
+		cg.ciphertext.setIVspec(new IvParameterSpec(components[1].getBytes()));
+		cg.ciphertext.setCiphertextByteArr(components[2].getBytes());
+		return (cg.decrypt(cg.ciphertext));
 	}
 
 	private String readFile(String filename) {

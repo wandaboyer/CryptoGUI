@@ -224,7 +224,12 @@ public class CryptoGUI extends JFrame implements ActionListener
 					+ "and then, unless you want stuff spit out to the command line, the desired location for the ciphertext (string of the form C:\\[stuff]).");
 		}
 		else {
-			CryptoCommandLine cl = new CryptoCommandLine(args);
+			try {
+				CryptoCommandLine cl = new CryptoCommandLine(args);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 }
