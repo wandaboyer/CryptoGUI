@@ -212,6 +212,17 @@ public class CryptoGUI extends JFrame implements ActionListener
 		if (args.length == 0) {
 			CryptoGUI app = new CryptoGUI();
 		}
+		else if (args.length < 5){
+			System.err.print("Invalid number of parameters. Please input the passphrase (string), key length (int),\n"
+					+"whether or not you're asking to encrypt a file on your drive (1) or a string (0),\nand then"+
+					" either the location of the file to encrypt(string of the form C:\\[stuff]) \nor your plaintext (string).");
+		}
+		else if (args.length > 6) {
+			System.err.print("Invalid number of parameters. Please input the passphrase (string), key length (int),\n"
+					+"whether or not you're asking to encrypt a file on your drive (1) or a string (0),\n"+
+					" either the location of the file to encrypt(string of the form C:\\[stuff]) \nor your plaintext (string),"
+					+ "and then, unless you want stuff spit out to the command line, the desired location for the ciphertext (string of the form C:\\[stuff]).");
+		}
 		else {
 			CryptoCommandLine cl = new CryptoCommandLine(args);
 		}
