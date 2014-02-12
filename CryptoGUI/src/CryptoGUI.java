@@ -157,7 +157,8 @@ public class CryptoGUI extends JFrame implements ActionListener
         		}
 				else {
 					cg.encrypt(passphrase, message, keylenchoice);
-					this.ciphertextArea.setText(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+					//this.ciphertextArea.setText(hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+					this.ciphertextArea.setText(new String(cg.ciphertext.getCiphertextByteArr(), "UTF8"));
 				}
 			} catch (InvalidKeyException | NumberFormatException
 					| InvalidAlgorithmParameterException
@@ -189,6 +190,9 @@ public class CryptoGUI extends JFrame implements ActionListener
         		}
 			} catch (InvalidKeyException | InvalidAlgorithmParameterException
 					| IllegalBlockSizeException | BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnsupportedEncodingException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}

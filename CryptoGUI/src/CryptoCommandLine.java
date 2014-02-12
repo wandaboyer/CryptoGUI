@@ -18,6 +18,8 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.spec.IvParameterSpec;
 
+import org.bouncycastle.util.encoders.Base64;
+
 
 public class CryptoCommandLine {
 	public CryptoCommandLine(String[] args) throws Exception {
@@ -31,10 +33,10 @@ public class CryptoCommandLine {
 		 */
 		
 		this(
-				Integer.parseInt(args[0]) == 0 ? true : false, 
+				Integer.parseInt(args[0]) == 0 ? true : false, //true is encrypt mode, false is decrypt mode
 				args[1], 
 				Integer.parseInt(args[2]), 
-				Integer.parseInt(args[3]) == 0 ? true : false, 
+				Integer.parseInt(args[3]) == 0 ? true : false, // true means that the command line argument is a filename, false is that the argument is the data
 				args[4], 
 				args.length == 6 ? args[5] : null);
 	}
@@ -43,7 +45,6 @@ public class CryptoCommandLine {
 		String data = (messageDataIsFilename ? readFile(messageData) : messageData);
 		
 		String result = (encryptMode ? encrypt(passphrase, keylength, data) : decrypt(passphrase, keylength, data));
-		
 		
 		if (outFile == null) {
 			System.out.print(result);
@@ -66,64 +67,26 @@ public class CryptoCommandLine {
 			throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException, IOException {
 
 		CryptoGuts cg = new CryptoGuts();
-		cg.encrypt(passphrase, plaintext, keylength);
+		byte[] ivspec = cg.encrypt(passphrase, plaintext, keylength);
 		
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		ObjectOutput out = null;
-		byte[] yourBytes = null;
-		try {
-		  out = new ObjectOutputStream(bos);   
-		  out.writeObject(cg.ciphertext.getIVspec());
-		  yourBytes = bos.toByteArray();
-		} finally {
-		  try {
-		    if (out != null) {
-		      out.close();
-		    }
-		  } catch (IOException ex) {
-		    // ignore close exception
-		  }
-		  try {
-		    bos.close();
-		  } catch (IOException ex) {
-		    // ignore close exception
-		  }
-		}
-		
-		return (cg.getSalt()+"\n#\n"+hexConverter.toHex(yourBytes)+"\n#\n"+hexConverter.toHex(cg.ciphertext.getCiphertextByteArr()));
+		//TODO need some way to store the ciphertext (and possibly the ivspec?) in the proper encoding so that padding is preserved, because there's a pad block corrupted error
+		return (cg.getSalt()+"\n#\n"+(new String(Base64.encode(ivspec)))+"\n#\n"+(new String(Base64.encode(cg.ciphertext.getCiphertextByteArr()))));
+		//return (cg.getSalt()+"\n#\n"+ (new sun.misc.BASE64Encoder.encodeBuffer(ivspec)) +"\n#\n"+(new sun.misc.BASE64Encoder.encodeBuffer(cg.ciphertext.getCiphertextByteArr())));
 	}
 	
 	
 	private String decrypt (String passphrase, int keylength, String data) throws NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException {
-		String[] components = data.split("#");
+		String[] components = data.split("\n#\n");
 		
 		CryptoGuts cg = new CryptoGuts();
+		//System.out.println(components[0]+" "+components[1]+" " + components[2] + " "+ keylength + " " + passphrase);
+		cg.ciphertext = new Ciphertext();
 		
 		cg.ciphertext.setKey(cg.generateKey(passphrase, keylength, components[0]));
 		
-		ByteArrayInputStream bis = new ByteArrayInputStream(hexConverter.toByte(components[1]));
-		ObjectInput in = null;
-		IvParameterSpec ivparam = null;
-		try {
-		  in = new ObjectInputStream(bis);
-		  ivparam = (IvParameterSpec) in.readObject();
-		} finally {
-		  try {
-		    bis.close();
-		  } catch (IOException ex) {
-		    // ignore close exception
-		  }
-		  try {
-		    if (in != null) {
-		      in.close();
-		    }
-		  } catch (IOException ex) {
-		    // ignore close exception
-		  }
-		}
-		cg.ciphertext.setIVspec(ivparam);
+		cg.ciphertext.setIVspec(new IvParameterSpec(Base64.decode(components[1])));
 		
-		cg.ciphertext.setCiphertextByteArr(components[2].getBytes());
+		cg.ciphertext.setCiphertextByteArr(Base64.decode(components[2].getBytes()));
 		return (cg.decrypt(cg.ciphertext));
 	}
 

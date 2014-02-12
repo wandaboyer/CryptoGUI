@@ -17,6 +17,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.encoders.Base64;
 
 public class CryptoGuts {
 	private Cipher cipher;
@@ -40,23 +41,23 @@ public class CryptoGuts {
     // move keylen to constructor
     
     // return salt, iv, keylen AND the ciphertext - create a new class to return, EncryptedObj... tell that obj to write and read itself from a file, and hex
-	public void encrypt(String passphrase, String message, int keylenchoice) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
+	public byte[] encrypt(String passphrase, String message, int keylenchoice) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, NoSuchAlgorithmException, wrongKeyLengthException, passphraseTooLargeException {
 		ciphertext = new Ciphertext();
 		
 		ciphertext.setKey(generateKey(passphrase, keylenchoice));
-		ciphertext.setIVspec(generateIV());
+		byte[] ivbytes = generateIV();
+		ciphertext.setIVspec(new IvParameterSpec(ivbytes));
 		
 		cipher.init(Cipher.ENCRYPT_MODE, ciphertext.getKey(), ciphertext.getIVspec());
-        ciphertext.setCiphertextByteArr(cipher.doFinal(message.getBytes()));
+        ciphertext.setCiphertextByteArr(cipher.doFinal(message.getBytes("UTF-8")));
         
+        return ivbytes;
 		//return ciphertext;
 	}
 	
-	
-
-	public String decrypt(Ciphertext ciphertext) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+	public String decrypt(Ciphertext ciphertext) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
         cipher.init(Cipher.DECRYPT_MODE,ciphertext.getKey(), ciphertext.getIVspec());
-        String plaintext = new String(this.cipher.doFinal(ciphertext.getCiphertextByteArr()));
+        String plaintext = new String(this.cipher.doFinal(ciphertext.getCiphertextByteArr()), "UTF-8");
         return plaintext;
 	}
 
@@ -117,8 +118,9 @@ public class CryptoGuts {
 			//JOptionPane.showMessageDialog(this,"Choose a passphrase that is less than or equal to 32 bytes in length!", "passphraseTooLarge", JOptionPane.ERROR_MESSAGE);
 			throw new passphraseTooLargeException();
 		}
-		this.salt = hexConverter.toHex(salt);
-		byte[] morphedPassphrase = (passphrase+salt.toString()).getBytes("UTF-8");
+		//this.salt = hexConverter.toHex(salt);
+		this.salt = new String(Base64.encode(salt));
+		byte[] morphedPassphrase = (passphrase+this.salt).getBytes("UTF-8");
 		MessageDigest sha = MessageDigest.getInstance("SHA-1");
 		morphedPassphrase = sha.digest(morphedPassphrase);
 		morphedPassphrase = Arrays.copyOf(morphedPassphrase, keylenchoice);
@@ -134,10 +136,11 @@ public class CryptoGuts {
         return new SecretKeySpec(morphedPassphrase, "AES");
 	}
 	
-	private IvParameterSpec generateIV() {
+	private byte[] generateIV() { //IvParameterSpec generateIV() {
 		byte[] iv = new byte[this.cipher.getBlockSize()];
 		new SecureRandom().nextBytes(iv);
-		return new IvParameterSpec(iv);
+		return iv;
+		//return new IvParameterSpec(iv);
 	}
 	
 	protected String getSalt() {
